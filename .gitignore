@@ -208,3 +208,4 @@ __marimo__/
 
 # Do not install node modules
 node_modules
+private.key

@@ -1,7 +1,18 @@
 import express from 'express'
+import dotenv from 'dotenv'
+import { fetchAndWriteEnvAndKey } from '../config_env.js'
+
+// Cargar variables de entorno si el archivo .env ya existe
+dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 3000
+
+fetchAndWriteEnvAndKey().then(() => {
+  console.log('Variables de entorno y clave privada cargadas correctamente')
+}).catch((err) => {
+  console.error('Error al cargar las variables de entorno y la clave privada:', err)
+})
 
 // Middleware para poder leer JSON en el body
 app.use(express.json())
@@ -44,9 +55,9 @@ app.post('/send-payment', (req, res) => {
       senderWalletUrl,
       receiverWalletUrl,
       amount: amount,
-      status: 'completed',                   // o 'processing', 'failed', según resultado
-      completedAt: new Date().toISOString(), // hora del "envío"
-      quoteId: 'dummy-quote-id-abcde',       // id de la quote asociada (dummy)
+      status: 'completed',                   
+      completedAt: new Date().toISOString(), 
+      quoteId: 'dummy-quote-id-abcde',       
       sentAmount: amount,
       
     },
