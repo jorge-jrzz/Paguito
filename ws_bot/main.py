@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from pywa_async import WhatsApp, filters
 from pywa.types import (
@@ -120,8 +121,22 @@ You can do this via voice note or a regular text message."""
 async def reply_audio(_: WhatsApp, msg: Message):
     await msg.reply("Audio received! 🎵")
     audio_id = msg.audio.id
-    media_path = await msg.download_media(filepath="downloads/audios/", filename=f"{audio_id}.mp3")
+    media_path: Path = await msg.download_media(filepath="downloads/audios/", filename=f"{audio_id}.mp3")
     print(f"Audio saved as {media_path}")
+    payload = {
+        "wa_id": msg.from_user.wa_id,
+        "name": msg.from_user.name,
+        "message": msg.caption if msg.caption else "",
+        "media": [
+            {
+                "type": "audio",
+                "source": f"{media_path.resolve()}"
+            }
+        ]
+    }
+    response = await llm_client.post(url=LLM_BACKEND, json=payload, timeout=60.0)
+    data = response.json()
+    await msg.reply(data['response'])
 
 
 @wa.on_message(filters.image)
@@ -137,7 +152,7 @@ async def reply_image(_: WhatsApp, msg: Message):
         "media": [
             {
                 "type": "image",
-                "url": f"{CALLBACK_URL}/{media_path}"
+                "source": f"{CALLBACK_URL}/{media_path}"
             }
         ]
     }
