@@ -1,6 +1,8 @@
 [tools]
 python = "3.12"
 uv = "latest"
+ngrok = "latest"
+npm = "latest"
 
 [settings]
 idiomatic_version_file_enable_tools = ["python"]
@@ -31,6 +33,22 @@ depends = ["llm_setup"]
 dir = "llm_back"
 run = "uv run main.py"
 
-[tasks.dev_all]
+[tasks.op_setup]
+description = "Set up the development environment for Open Payments Backend Service"
+dir = "op"
+run = "npm install"
+
+[tasks.op_dev]
+description = "Start the development environment for Open Payments Backend Service"
+depends = ["op_setup"]
+dir = "op"
+run = "npm run dev"
+
+[tasks.dev]
 description = "Start both WhatsApp bot and LLM Backend development environments"
-depends = ["ws_dev", "llm_dev"]
+depends = ["ws_dev", "llm_dev", "op_dev"]
+
+[tasks.docker_llm]
+description = "Build and run the Docker container for LLM Backend"
+dir = "llm_back"
+run = "docker build -t llm_backend . && docker run --rm -d --name llm_backend -p 8000:8000 llm_backend"
