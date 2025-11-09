@@ -1,9 +1,14 @@
+import os
+
 import uvicorn
 from dotenv import load_dotenv
-import os
+
+from apps.config_env import fetch_and_write_env_and_key
 
 # Cargar variables de entorno desde .env si existe
 env_path = os.path.join(os.path.dirname(__file__), ".env")
+
+fetch_and_write_env_and_key()
 load_dotenv(env_path)
 
 if __name__ == "__main__":

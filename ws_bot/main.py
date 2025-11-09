@@ -21,8 +21,9 @@ from config_env import fetch_and_write_env_and_key
 
 fetch_and_write_env_and_key()
 load_dotenv()
-CALLBACK_URL = "https://eba37599c82a.ngrok-free.app"
-LLM_BACKEND = "http://localhost:8000/webhook/whatsapp"
+CALLBACK_URL = "https://de7769004bf7.ngrok-free.app"
+# LLM_BACKEND = "http://localhost:8000/webhook/whatsapp" # LLM backend URL in localhost
+LLM_BACKEND = "http://llm_backend:8000/webhook/whatsapp" # LLM backend URL in docker container environment
 
 fastapi_app = FastAPI()
 fastapi_app.mount("/downloads", StaticFiles(directory="./downloads"), name="downloads")

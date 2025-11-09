@@ -3,13 +3,13 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy dependency files first for better caching
-COPY package*.json ./
+COPY op/package*.json ./
 
 # Install production dependencies
 RUN npm ci --only=production
 
 # Copy application code
-COPY . .
+COPY op/. /app
 
 EXPOSE 3000
 

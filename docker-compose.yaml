@@ -1,0 +1,32 @@
+services:
+  ws_bot:
+    build:
+      context: .
+      dockerfile: ws_bot/Dockerfile
+    container_name: ws-bot
+    depends_on:
+      - llm_backend
+    ports:
+      - "8080:8080"
+    networks:
+      - paguito_network
+
+  llm_backend:
+    build:
+      context: .
+      dockerfile: llm_back/Dockerfile
+    container_name: llm-backend
+    networks:
+      - paguito_network
+
+  open_payments_api:
+    build:
+      context: .
+      dockerfile: op/Dockerfile
+    container_name: open-payments-api
+    networks:
+      - paguito_network
+
+networks:
+  paguito_network:
+    driver: bridge
