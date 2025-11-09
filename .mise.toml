@@ -67,3 +67,7 @@ docker run --rm -d \
   -v $(pwd)/private.key:/app/private.key:ro \
   open-payments-api
 """
+
+[tasks.docker_up]
+description = "Build and run all Docker containers"
+run = "docker-compose up --build -d"
