@@ -1,27 +1,24 @@
 import os
 
 from pywa_async import WhatsApp, filters
-from pywa.types import FlowCategory, Message, FlowButton, Button, ChatOpened, CallbackButton, URLButton, SectionList, Section, SectionRow, CallbackSelection
-from pywa.types.flows import (
-    FlowJSON,
-    Screen,
-    Layout,
-    TextInput,
-    InputType,
-    OptIn,
-    OpenURLAction,
-    Footer,
-    CompleteAction,
-    FlowStatus,
-    FlowActionType
+from pywa.types import (
+    Message,
+    Button,
+    CallbackButton,
+    SectionList,
+    Section,
+    SectionRow,
+    CallbackSelection
 )
 from dotenv import load_dotenv
 from fastapi import FastAPI
-# import httpx
+import httpx
 
 
 load_dotenv()
 CALLBACK_URL = "https://4b0ca75fffaf.ngrok-free.app"
+LLM_BACKEND = "https://shaun-nondiffident-ravishingly.ngrok-free.dev/webhook/whatsapp"
+
 fastapi_app = FastAPI()
 wa = WhatsApp(
     phone_id=os.getenv('META_PHONE_ID'),
@@ -34,12 +31,7 @@ wa = WhatsApp(
 )
 
 
-# llm_client = httpx.AsyncClient()
-POPULAR_ACTIONS = {
-    "transfer": ("Transfer money to another account", "💸"),
-    "tickets": ("Pay for services", "🏦"),
-    "check": ("Check transactions", "🥸")
-}
+llm_client = httpx.AsyncClient()
 
 POPULAR_LANGUAGES = {
     "en": ("English", "🇺🇸"),
@@ -89,7 +81,7 @@ async def hello(_: WhatsApp, msg: Message):
 @wa.on_callback_selection(filters.startswith('language:'))
 async def select_action(_: WhatsApp, sel: CallbackSelection):
     await sel.reply_text(
-        text="Great! Now, please select the action you would like to perform:",
+        text=f"Great, {sel.from_user.name}! Now, please select the action you would like to perform:",
         buttons=[
             Button(
                 title="Transfer money 💸",
@@ -110,85 +102,37 @@ async def select_action(_: WhatsApp, sel: CallbackSelection):
 async def perform_action(_: WhatsApp, clb: CallbackButton):
     action = clb.data.split(':')[-1]
     if action == "transfer":
-        await clb.reply_text(text="Transfer Action")
+        await clb.reply_text(
+            text="""Okay, now tell me the account number and the amount you want to transfer.
+You can do this via voice note or a regular text message."""
+        )
+        await clb.reply_text(text="Feel free to choose how you make the request! 🤠")
     elif action == "tickets":
         await clb.reply_text(text="Pay for services action")
     elif action == "check":
         await clb.reply_text(text="Check transactions action")
-    else:
-        await clb.reply_text(text="contesta bien tontito")
 
-# @wa.on_callback_button(filters.matches("translate"))
-# async def translate(_: WhatsApp, clb: CallbackButton):
-#     await clb.reply_text("Please provide the text you want to translate:")
+@wa.on_message(filters.audio)
+async def reply_audio(_: WhatsApp, msg: Message):
+    await msg.reply("Audio received! 🎵")
+    audio_id = msg.audio.id
+    media_path = await msg.download_media(filepath="downloads/audios/", filename=f"{audio_id}.mp3")
+    print(f"Audio saved as {media_path}")
 
-# @wa.on_message
-# async def hello(_: WhatsApp, msg: Message):
-#     print("Received a message!")
-#     print(msg)
-#     msg.reply("Hello from Paguito!")
-    # if msg.type == "image":
-    #     await msg.react("❤️")
-    #     await msg.download_media(filepath="downloads/", filename="yopo.jpg")
-    #     await msg.reply("Nice image!")
-    # elif msg.type == "text":
-    #     await msg.react("👋")
-    #     print(f"Message from {msg.from_user}: {msg.text} \n Metadata: {msg.metadata} \n ID: {msg.id}")
-    #     await msg.reply("Hello from Paguito!")
-    #     response = await llm_client.get("http://localhost:8001/chat")
-    #     data = response.json()
-    #     await msg.reply(f"LLM says: {data['response']}")
+@wa.on_message(filters.image)
+async def reply_image(_: WhatsApp, msg: Message):
+    await msg.reply("Image received! 🖼️")
+    image_id = msg.image.id
+    media_path = await msg.download_media(filepath="downloads/images/", filename=f"{image_id}.jpg")
+    print(f"Image saved as {media_path}")
 
-
-
-# def greeting_filter(_: WhatsApp, msg: Message) -> bool:
-#     return msg.text and "Hi" not in msg.text
-
-# @wa.on_message
-# async def send_buttons(_: WhatsApp, msg: Message):
-#     await msg.reply(
-#         text="Hi, You need to finish your sign up!",
-#         buttons=[
-#             Button(title="Menu", callback_data="menu"),
-#             Button(title="Help", callback_data="help")
-#         ]
-#     )
-
-# @wa.on_message(filters.image & filters.has_caption)
-# async def reply_filter(_: WhatsApp, msg: Message):
-#     await msg.reply("imagen con caption recibida")
-
-# Register callback to handle incoming messages
-# @wa.on_message(filters.matches("Hello", "Hi")) # Filter to match text messages that contain "Hello" or "Hi"
-# # @wa.on_message(filters.) # Filter to match text messages that contain "Hello" or "Hi"
-# async def hello(client: WhatsApp, msg: Message):
-#     await msg.react("👋") # React to the message with a wave emoji
-#     await msg.reply_text( # Short reply to the message
-#         text=f"Hello {msg.from_user.name}!", # Greet the user
-#         buttons=[
-#             Button(
-#                 title="About me",
-#                 callback_data="about_me"
-#             )
-#         ]
-#     )
-#     # Use the `wait_for_reply` listener to wait for a reply from the user
-#     sent_age_prompt = await msg.reply(text="What's your age?")  # Send the prompt and await the sent message
-#     age_reply = await sent_age_prompt.wait_for_reply(timeout=60)  # Wait for a reply for up to 60 seconds
-#     await msg.reply_text(f"Your age is {age_reply.text}.")
-
-# # Register another callback to handle incoming button clicks
-# @wa.on_callback_button(filters.matches("about_me")) # Filter to match the button click
-# async def click_me(client: WhatsApp, clb: CallbackButton):
-#     await clb.reply_text(f"Hello {clb.from_user.name}, I am a WhatsApp bot built with PyWa!") # Reply to the button click
-
-# @wa.on_message(filters.matches("link")) # Filter to match text messages that contain "Hello" or "Hi"
-# async def link(_: WhatsApp, msg: Message):
-
-#     await msg.reply_text( # Short reply to the message
-#         text=f"Hello {msg.from_user.name}!", # Greet the user
-#         buttons=URLButton(
-#                 title="Open AI Website",
-#                 url="https://www.openai.com"
-#             )
-#     )
+@wa.on_message(filters.text)
+async def echo(_: WhatsApp, msg: Message):
+    await msg.react("🤖")
+    response = await llm_client.post(url=LLM_BACKEND, json={
+        "wa_id": msg.from_user.wa_id,
+        "name": msg.from_user.name,
+        "message": msg.text
+    })
+    data = response.json()
+    await msg.reply(data['response'])
