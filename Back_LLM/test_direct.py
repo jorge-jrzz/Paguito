@@ -1,13 +1,29 @@
-from pathlib import Path
 from openai import OpenAI
+from dotenv import load_dotenv
+import os
+
+# Carga las variables del .env (donde tienes tu API_KEY)
+load_dotenv()
 
 client = OpenAI()
-speech_file_path = Path(__file__).parent / "respuesta.mp3"
 
-with client.audio.speech.with_streaming_response.create(
-    model="gpt-4o-mini-tts",
-    voice="coral",
-    input="Tu transferencia de 50 pesos a la cuenta 111 ha sido realizada con éxito. ¡Gracias!",
-    instructions="Speak in a cheerful and positive tone.",
-) as response:
-    response.stream_to_file(speech_file_path)
+response = client.responses.create(
+    model="gpt-4o",
+    input=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "input_text",
+                    "text": "extrae el monto y la cuenta",
+                },
+                {
+                    "type": "input_image",
+                    "image_url": "https://dropi-front-end-bucket.s3.us-east-1.amazonaws.com/WhatsApp+Image+2025-11-08+at+6.27.41+PM.jpeg"
+                }
+            ]
+        }
+    ]
+)
+
+print(response.output_text)
