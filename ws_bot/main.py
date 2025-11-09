@@ -21,8 +21,8 @@ from config_env import fetch_and_write_env_and_key
 
 fetch_and_write_env_and_key()
 load_dotenv()
-CALLBACK_URL = "https://560f141a9f77.ngrok-free.app"
-LLM_BACKEND = "https://shaun-nondiffident-ravishingly.ngrok-free.dev/webhook/whatsapp"
+CALLBACK_URL = "https://3e5d3b185cd3.ngrok-free.app"
+LLM_BACKEND = "http://localhost:8000/webhook/whatsapp"
 
 fastapi_app = FastAPI()
 fastapi_app.mount("/downloads", StaticFiles(directory="./downloads"), name="downloads")

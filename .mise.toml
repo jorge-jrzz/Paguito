@@ -1,0 +1,36 @@
+[tools]
+python = "3.12"
+uv = "latest"
+
+[settings]
+idiomatic_version_file_enable_tools = ["python"]
+
+[tasks.ws_setup]
+description = "Set up the development environment for WhatsApp bot"
+dir = "ws_bot"
+run = "uv sync --no-dev"
+
+[tasks.ws_ngrok]
+description = "Expose the WhatsApp bot to the internet using ngrok"
+run = "ngrok http 8080"
+
+[tasks.ws_dev]
+description = "Start the development environment for the WhatsApp bot"
+depends = ["ws_setup"]
+dir = "ws_bot"
+run = "uv run fastapi dev main.py --port 8080"
+
+[tasks.llm_setup]
+description = "Set up the development environment for LLM Backend"
+dir = "llm_back"
+run = "uv sync --no-dev"
+
+[tasks.llm_dev]
+description = "Start the development environment for LLM Backend"
+depends = ["llm_setup"]
+dir = "llm_back"
+run = "uv run main.py"
+
+[tasks.dev_all]
+description = "Start both WhatsApp bot and LLM Backend development environments"
+depends = ["ws_dev", "llm_dev"]
