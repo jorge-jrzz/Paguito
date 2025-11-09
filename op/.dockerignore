@@ -1,0 +1,44 @@
+# Dependencias
+node_modules
+npm-debug.log
+
+# Archivos de entorno (se deben pasar como variables o volúmenes)
+.env
+.env.local
+.env.*.local
+
+# Archivos de clave privada (se deben pasar como volúmenes o secrets)
+private.key
+*.key
+*.pem
+
+# Archivos de desarrollo
+.git
+.gitignore
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Documentación
+README.md
+TESTING.md
+*.md
+
+# Archivos de configuración de desarrollo
+.dockerignore
+Dockerfile
+
+# Logs
+logs
+*.log
+
+# Archivos temporales
+tmp
+temp
+.tmp
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db

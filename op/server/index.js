@@ -1,79 +1,102 @@
 import express from 'express'
 import dotenv from 'dotenv'
 import { fetchAndWriteEnvAndKey } from '../config_env.js'
+import { initiatePaymentController } from '../controlers/initiatePayment.js'
+import { completePaymentController } from '../controlers/completePayment.js'
 
-// Cargar variables de entorno si el archivo .env ya existe
 dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 3000
 
-fetchAndWriteEnvAndKey().then(() => {
-  console.log('Variables de entorno y clave privada cargadas correctamente')
-}).catch((err) => {
-  console.error('Error al cargar las variables de entorno y la clave privada:', err)
-})
-
-// Middleware para poder leer JSON en el body
 app.use(express.json())
 
-/**
- * Endpoint simple para que el LLM pueda enviar dinero.
- * 
- * POST /send-payment
- * 
- * Body esperado (JSON):
- * {
- *   "senderWalletUrl": "url de la wallet que envía",
- *   "receiverWalletUrl": "url de la wallet que recibe",
- *   "amount": 1000
- * }
- * 
- * Responde con un objeto dummy que simula la respuesta de la API de Open Payments.
- */
-app.post('/send-payment', (req, res) => {
-  const { senderWalletUrl, receiverWalletUrl, amount } = req.body
+// Step 1: Initiate payment and get confirmation URL
+app.post('/send-payment', async (req, res) => {
+  try {
+    const { senderWalletUrl, receiverWalletUrl, amount, assetCode, assetScale } = req.body
 
-  // Validación de datos
-  if (!senderWalletUrl || !receiverWalletUrl || typeof amount !== 'number') {
-    return res.status(400).json({
-      success: false,
-      error: 'senderWalletUrl, receiverWalletUrl y amount (solo monto, numérico) son requeridos'
-    })
-  }
+    if (!senderWalletUrl || !receiverWalletUrl || !amount) {
+      return res.status(400).json({
+        success: false,
+        error: 'senderWalletUrl, receiverWalletUrl and amount are required'
+      })
+    }
 
-  // Simulacion de respuesta
-  const paymentId = 'dummy-payment-id-12345'
-  const paymentUrl = `https://api.fake-openpayments.org/outgoing-payments/${paymentId}`
+    if (typeof amount !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'amount must be a string (e.g., "10000")'
+      })
+    }
 
-  // mock de respuesta
-  const response = {
-    success: true,
-    outgoingPayment: {
-      id: paymentUrl,
-      paymentId: paymentId,
+    const result = await initiatePaymentController(
       senderWalletUrl,
       receiverWalletUrl,
-      amount: amount,
-      status: 'completed',                   
-      completedAt: new Date().toISOString(), 
-      quoteId: 'dummy-quote-id-abcde',       
-      sentAmount: amount,
-      
-    },
-    message: 'Pago simulado exitoso (dummy)'
+      amount,
+      assetCode || 'USD',
+      assetScale || 2
+    )
+
+    if (result.success) {
+      res.json(result)
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error
+      })
+    }
+  } catch (error) {
+    console.error('Error in /send-payment:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Internal server error'
+    })
   }
-
-  res.json(response)
 })
 
-// health check
+// Step 2: Complete payment after user confirmation
+app.post('/confirm-payment', async (req, res) => {
+  try {
+    const { paymentId } = req.body
+
+    if (!paymentId) {
+      return res.status(400).json({
+        success: false,
+        error: 'paymentId is required'
+      })
+    }
+
+    const result = await completePaymentController(paymentId)
+
+    if (result.success) {
+      res.json(result)
+    } else {
+      res.status(400).json({
+        success: false,
+        error: result.error
+      })
+    }
+  } catch (error) {
+    console.error('Error in /confirm-payment:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Internal server error'
+    })
+  }
+})
+
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'Open Payments Simple API' })
+  res.json({ status: 'ok', service: 'Open Payments API' })
 })
 
-
-// Servidor escuchando
-app.listen(PORT, () => {
-  console.log(`Servidor Open Payments Simple API corriendo en http://localhost:${PORT}`)
+// Listen on 0.0.0.0 to work in Docker
+const HOST = process.env.HOST || '0.0.0.0'
+app.listen(PORT, HOST, () => {
+  fetchAndWriteEnvAndKey().then(() => {
+    console.log('Environment variables and private key loaded')
+  }).catch((err) => {
+    console.error('Error loading environment variables:', err)
+  })
+  console.log(`Server running on http://${HOST}:${PORT}`)
 })

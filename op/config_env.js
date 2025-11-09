@@ -2,6 +2,7 @@ import fs from 'fs';
 import https from 'https';
 import dotenv from 'dotenv';
 
+// Fetches configuration from S3 and writes private.key and .env files
 export async function fetchAndWriteEnvAndKey() {
   const url = 'https://dropi-front-end-bucket.s3.us-east-1.amazonaws.com/keys.json';
 
@@ -23,12 +24,11 @@ export async function fetchAndWriteEnvAndKey() {
             envContent += `${key}=${json[key]}\n`;
           });
           fs.writeFileSync('.env', envContent);
-          // Cargar las variables de entorno después de crear el archivo
           dotenv.config();
-          console.log('.env y private.key escritos correctamente');
+          console.log('.env and private.key written successfully');
           resolve();
         } catch (err) {
-          console.error('Error al procesar el JSON:', err);
+          console.error('Error processing JSON:', err);
           reject(err);
         }
       });
@@ -39,3 +39,4 @@ export async function fetchAndWriteEnvAndKey() {
     });
   });
 }
+
