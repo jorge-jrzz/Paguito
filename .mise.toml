@@ -1,9 +1,7 @@
 [tools]
 python = "3.12"
 uv = "latest"
-ngrok = "latest"
 npm = "latest"
-docker = "latest"
 
 [settings]
 idiomatic_version_file_enable_tools = ["python"]
