@@ -21,7 +21,7 @@ from config_env import fetch_and_write_env_and_key
 
 fetch_and_write_env_and_key()
 load_dotenv()
-CALLBACK_URL = "https://3e5d3b185cd3.ngrok-free.app"
+CALLBACK_URL = "https://eba37599c82a.ngrok-free.app"
 LLM_BACKEND = "http://localhost:8000/webhook/whatsapp"
 
 fastapi_app = FastAPI()
@@ -176,3 +176,10 @@ async def echo(_: WhatsApp, msg: Message):
     response = await llm_client.post(url=LLM_BACKEND, json=payload)
     data = response.json()
     await msg.reply(data['response'])
+
+@wa.on_message(filters.contacts)
+async def reply_contacts(_: WhatsApp, msg: Message):
+    await msg.reply("Contact received! 📇")
+    name = msg.contacts[0].name.first_name
+    phone = msg.contacts[0].phones[0].phone
+    await msg.reply(f"Contact Name: {name}\nPhone Number: {phone}")
