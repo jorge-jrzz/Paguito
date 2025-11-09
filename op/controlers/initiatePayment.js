@@ -25,17 +25,8 @@ export async function initiatePaymentController(
       savePendingPayment(paymentId, paymentState);
       
       return {
-        success: true,
-        requiresConfirmation: true,
         paymentId,
         confirmationUrl: paymentState.outgoingPaymentGrant.interact.redirect,
-        message: 'Visit the confirmation URL to authorize the payment, then use /confirm-payment with the paymentId',
-        data: {
-          incomingPaymentId: paymentState.incomingPayment.id,
-          quoteId: paymentState.quote.id,
-          debitAmount: paymentState.quote.debitAmount,
-          receiveAmount: paymentState.quote.receiveAmount,
-        },
       };
     }
     

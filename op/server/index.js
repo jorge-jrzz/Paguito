@@ -38,12 +38,16 @@ app.post('/send-payment', async (req, res) => {
       assetScale || 2
     )
 
-    if (result.success) {
-      res.json(result)
+    // If result has paymentId and confirmationUrl, it's successful
+    if (result.paymentId && result.confirmationUrl) {
+      res.json({
+        paymentId: result.paymentId,
+        confirmationUrl: result.confirmationUrl
+      })
     } else {
       res.status(500).json({
         success: false,
-        error: result.error
+        error: result.error || 'Failed to initiate payment'
       })
     }
   } catch (error) {
