@@ -84,3 +84,8 @@ Completes the payment after user has authorized it.
 KEY_ID and WALLET_ADDRESS_URL are hardcoded in `op/lib/config.js`. Edit that file to change them.
 
 Private key must be in `op/private.key` file.
+
+## Documentación extendida
+- [`DOCUMENTATION.md`](./DOCUMENTATION.md): guía completa con arquitectura, flujos, variables y pasos de despliegue para todos los servicios.
+- [`llm_back/README.md`](./llm_back/README.md): instrucciones específicas del backend LLM.
+- [`op/README.md`](./op/README.md): explicación detallada del API de Open Payments.

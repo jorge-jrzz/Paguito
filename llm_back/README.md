@@ -110,10 +110,3 @@ Una vez que el servidor esté corriendo, visita:
   "name": "Yorch Juárez"
 }
 ```
-
-## Notas
-
-- ✅ La API key se lee automáticamente del archivo `.env` si existe
-- ✅ También se puede usar la variable de entorno `OPENAI_API_KEY`
-- ✅ El archivo `.env` está en `.gitignore` para seguridad
-- ⚠️ Nunca commitees tu archivo `.env` con tu API key real
