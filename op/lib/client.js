@@ -1,29 +1,27 @@
-import fs from 'fs'
-import { createAuthenticatedClient } from '@interledger/open-payments'
-import { KEY_ID, WALLET_ADDRESS_URL, PRIVATE_KEY_PATH } from './config.js'
+import { createAuthenticatedClient } from '@interledger/open-payments';
+import { loadConfig } from './config.js';
 
-let clientPromise
+let clientInstance = null;
 
-function readPrivateKey() {
-  if (fs.existsSync(PRIVATE_KEY_PATH)) {
-    return fs.readFileSync(PRIVATE_KEY_PATH, 'utf8')
+// Singleton pattern for authenticated Open Payments client
+export async function getClient() {
+  if (clientInstance) {
+    return clientInstance;
   }
-
-  return PRIVATE_KEY_PATH
+  
+  const config = await loadConfig();
+  
+  clientInstance = await createAuthenticatedClient({
+    walletAddressUrl: config.walletAddressUrl,
+    privateKey: config.privateKey,
+    keyId: config.keyId,
+  });
+  
+  return clientInstance;
 }
 
-async function createClient() {
-  const privateKey = readPrivateKey()
-  return createAuthenticatedClient({
-    keyId: KEY_ID,
-    walletAddressUrl: WALLET_ADDRESS_URL,
-    privateKey,
-  })
+export async function getWalletAddress(walletAddressUrl) {
+  const client = await getClient();
+  return await client.walletAddress.get({ url: walletAddressUrl });
 }
 
-export function getAuthenticatedClient() {
-  if (!clientPromise) {
-    clientPromise = createClient()
-  }
-  return clientPromise
-}

@@ -1,5 +1,6 @@
 import express from 'express'
 import dotenv from 'dotenv'
+import fs from 'fs'
 import { fetchAndWriteEnvAndKey } from '../config_env.js'
 import { initiatePaymentController } from '../controlers/initiatePayment.js'
 import { completePaymentController } from '../controlers/completePayment.js'
@@ -11,15 +12,52 @@ const PORT = process.env.PORT || 3000
 
 app.use(express.json())
 
+// Wallet address mapping: name -> wallet URL
+const WALLET_MAPPING = {
+  'santiago bocanegra': 'https://ilp.interledger-test.dev/receptor-sdbk24',
+  'amazon': 'https://ilp.interledger-test.dev/receptor-sdbk24',
+  // Default wallet for any other name
+  'default': 'https://ilp.interledger-test.dev/receptor-sdbk24'
+}
+
+// Sender wallet is always the same
+const SENDER_WALLET_URL = 'https://ilp.interledger-test.dev/paguito-sender'
+
+// Helper function to get wallet address from name
+function getWalletAddressFromName(name) {
+  if (!name || typeof name !== 'string') {
+    return WALLET_MAPPING.default
+  }
+  
+  const normalizedName = name.toLowerCase().trim()
+  
+  // Check for exact matches first
+  if (WALLET_MAPPING[normalizedName]) {
+    return WALLET_MAPPING[normalizedName]
+  }
+  
+  // Check for partial matches
+  if (normalizedName.includes('santiago') && normalizedName.includes('bocanegra')) {
+    return WALLET_MAPPING['santiago bocanegra']
+  }
+  
+  if (normalizedName.includes('amazon')) {
+    return WALLET_MAPPING['amazon']
+  }
+  
+  // Default wallet
+  return WALLET_MAPPING.default
+}
+
 // Step 1: Initiate payment and get confirmation URL
 app.post('/send-payment', async (req, res) => {
   try {
-    const { senderWalletUrl, receiverWalletUrl, amount, assetCode, assetScale } = req.body
+    const { receiverWalletUrl, amount, assetCode, assetScale } = req.body
 
-    if (!senderWalletUrl || !receiverWalletUrl || !amount) {
+    if (!receiverWalletUrl || !amount) {
       return res.status(400).json({
         success: false,
-        error: 'senderWalletUrl, receiverWalletUrl and amount are required'
+        error: 'receiverWalletUrl (person name) and amount are required'
       })
     }
 
@@ -30,9 +68,15 @@ app.post('/send-payment', async (req, res) => {
       })
     }
 
+    // Map receiver name to wallet address
+    const actualReceiverWalletUrl = getWalletAddressFromName(receiverWalletUrl)
+    
+    // Sender is always the same
+    const senderWalletUrl = SENDER_WALLET_URL
+
     const result = await initiatePaymentController(
       senderWalletUrl,
-      receiverWalletUrl,
+      actualReceiverWalletUrl,
       amount,
       assetCode || 'USD',
       assetScale || 2
@@ -91,16 +135,80 @@ app.post('/confirm-payment', async (req, res) => {
 })
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'Open Payments API' })
+  // Get all environment variables
+  const envVars = { ...process.env };
+  
+  // List of keys that should be hidden (secrets)
+  const secretKeys = [
+    'PRIVATE_KEY_CONTENT',
+    'OPENAI_API_KEY',
+    'META_ACCESS_TOKEN',
+    'META_APP_SECRET',
+    'API_KEY',
+    'SECRET',
+    'TOKEN',
+    'PASSWORD',
+    'PASS',
+    'KEY',
+    'PRIVATE'
+  ];
+  
+  // Filter and mask sensitive variables
+  const safeEnvVars = {};
+  Object.keys(envVars).forEach(key => {
+    const upperKey = key.toUpperCase();
+    const isSecret = secretKeys.some(secret => upperKey.includes(secret));
+    
+    if (isSecret) {
+      // Show that the variable exists but mask its value
+      const value = envVars[key];
+      safeEnvVars[key] = value ? `***${value.slice(-4)}` : '***';
+    } else {
+      safeEnvVars[key] = envVars[key];
+    }
+  });
+  
+  // Check if .env file exists
+  const envFileExists = fs.existsSync('.env');
+  const envFileContent = envFileExists ? fs.readFileSync('.env', 'utf8') : null;
+  
+  res.json({
+    status: 'ok',
+    service: 'Open Payments API',
+    environment: {
+      nodeEnv: process.env.NODE_ENV,
+      port: process.env.PORT,
+      host: process.env.HOST,
+    },
+    envFile: {
+      exists: envFileExists,
+      variablesCount: envFileContent ? envFileContent.split('\n').filter(line => line.trim() && !line.startsWith('#')).length : 0
+    },
+    environmentVariables: safeEnvVars,
+    loadedVariables: Object.keys(safeEnvVars).length
+  })
 })
 
 // Listen on 0.0.0.0 to work in Docker
 const HOST = process.env.HOST || '0.0.0.0'
-app.listen(PORT, HOST, () => {
-  fetchAndWriteEnvAndKey().then(() => {
-    console.log('Environment variables and private key loaded')
-  }).catch((err) => {
+
+// Load configuration before starting server
+async function startServer() {
+  try {
+    await fetchAndWriteEnvAndKey()
+    console.log('Environment variables and private key loaded successfully')
+    
+    // Reload dotenv to ensure all variables are available
+    dotenv.config()
+    
+    app.listen(PORT, HOST, () => {
+      console.log(`Server running on http://${HOST}:${PORT}`)
+    })
+  } catch (err) {
     console.error('Error loading environment variables:', err)
-  })
-  console.log(`Server running on http://${HOST}:${PORT}`)
-})
+    console.error('Server will not start without configuration')
+    process.exit(1)
+  }
+}
+
+startServer()

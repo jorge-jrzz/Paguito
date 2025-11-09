@@ -1,47 +1,31 @@
-import { getAuthenticatedClient } from './client.js'
+import { finalizeGrant } from './grants.js';
+import { createOutgoingPayment } from './outgoingPayment.js';
 
-export async function completePayment(paymentState, interactRef) {
-  const client = await getAuthenticatedClient()
-
-  if (paymentState.outgoingPaymentGrant.interact && !interactRef) {
-    throw new Error('interact_ref is required to continue the outgoing payment grant')
-  }
-
-  const continuation = paymentState.outgoingPaymentGrant.continue
-
-  if (!continuation) {
-    throw new Error('Outgoing payment grant does not contain continuation information')
-  }
-
-  const continuationBody = interactRef ? { interact_ref: interactRef } : {}
-
-  const finalizedGrant = await client.grant.continue(
-    {
-      url: continuation.uri,
-      accessToken: continuation.access_token.value,
-    },
-    continuationBody
-  )
-
-  const outgoingPayment = await client.outgoingPayment.create(
-    {
-      url: paymentState.senderWallet.resourceServer,
-      accessToken: finalizedGrant.access_token.value,
-    },
-    {
-      walletAddress: paymentState.senderWallet.id,
-      quoteId: paymentState.quote.id,
-      metadata: {
-        paymentId: paymentState.paymentId,
-        ...(paymentState.outgoingPaymentMetadata ?? {}),
-      },
-    }
-  )
-
+// Completes payment after user confirmation: finalizes grant and creates outgoing payment
+export async function completePayment(paymentState) {
+  const { outgoingPaymentGrant, senderWallet, quote, incomingPayment } = paymentState;
+  
+  console.log('Completing payment flow...');
+  
+  console.log('Finalizing grant...');
+  const finalizedGrant = await finalizeGrant(outgoingPaymentGrant);
+  console.log('Grant finalized');
+  
+  console.log('\n Step 5: Creating outgoing payment...');
+  const outgoingPayment = await createOutgoingPayment(
+    senderWallet.resourceServer,
+    finalizedGrant.access_token.value,
+    senderWallet.id,
+    quote.id
+  );
+  console.log(`Outgoing payment created: ${outgoingPayment.id}`);
+  
+  console.log('\n Payment completed successfully!');
+  
   return {
-    incomingPayment: paymentState.incomingPayment,
-    quote: paymentState.quote,
+    incomingPayment,
+    quote,
     outgoingPayment,
-    grant: finalizedGrant,
-  }
+  };
 }
+
