@@ -3,6 +3,7 @@ python = "3.12"
 uv = "latest"
 ngrok = "latest"
 npm = "latest"
+docker = "latest"
 
 [settings]
 idiomatic_version_file_enable_tools = ["python"]
@@ -52,3 +53,19 @@ depends = ["ws_dev", "llm_dev", "op_dev"]
 description = "Build and run the Docker container for LLM Backend"
 dir = "llm_back"
 run = "docker build -t llm_backend . && docker run --rm -d --name llm_backend -p 8000:8000 llm_backend"
+
+[tasks.docker_ws]
+description = "Build and run the Docker container for WhatsApp Bot"
+dir = "ws_bot"
+run = "docker build -t ws_bot_backend . && docker run --rm -d --name ws_bot -p 8080:8080 ws_bot_backend"
+
+[tasks.docker_op]
+description = "Build and run the Docker container for Open Payments Backend Service"
+dir = "op"
+run = """docker build -t open-payments-api . && \
+docker run --rm -d \
+  --name open-payments-api \
+  -p 3000:3000 \
+  -v $(pwd)/private.key:/app/private.key:ro \
+  open-payments-api
+"""
